@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    environment {
+        // Define environment variables here
+        DOCKER_IMAGE = 'ammarmorad2004/spring-petclinic-jenkins'
+        DOCKER_CREDENTIALS_ID = 'dockerhub'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Checkout the code from the repository
+                git 'https://github.com/ammarmorad24/spring-petclinic'
+            }
+        }       
+        stage('Build Docker Image') {
+            steps {
+                // Build the Docker image
+                script {
+                    dockerImage = docker.build("${DOCKER_IMAGE}:${env.BUILD_ID}")
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('', "${DOCKER_CREDENTIALS_ID}") {
+                        dockerImage.push("${env.BUILD_ID}")
+                        dockerImage.push("latest")
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Cleanup
+            cleanWs()
+        }
+        success {
+            // Notify success (optional)
+            echo 'Pipeline succeeded'
+        }
+        failure {
+            // Notify failure (optional)
+            echo 'Pipeline failed'
+        }
+    }
+}
